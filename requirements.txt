@@ -1,20 +1,24 @@
 # Dépendances Python du projet (à affiner au fil des étapes).
-# Étape 0 : squelette minimal, rien n'est encore installé/utilisé.
 
-# ai_detection (étape 2)
+# data/ (étape 1 — collecte et préparation des données)
+requests
+numpy
+opencv-python-headless
+
+# tests
+pytest
+
+# ai_detection (étape 2, pas encore utilisé)
 # ultralytics
 # torch
 
-# mapping / photogrammétrie (étape 3-4)
+# mapping / photogrammétrie (étape 3-4, pas encore utilisé)
 # opendronemap (via CLI/Docker, pas un package pip)
 # rasterio
 # geopandas
 
-# dashboard backend (étape 5)
+# dashboard backend (étape 5, pas encore utilisé)
 # fastapi
 # uvicorn
 # sqlalchemy
 # geoalchemy2
-
-# tests
-# pytest

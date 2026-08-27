@@ -5,7 +5,7 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 | # | Étape | Statut | Module(s) principal(aux) |
 |---|---|---|---|
 | 0 | Mise en place initiale du dépôt | fait | (structure complète) |
-| 1 | Collecte des données publiques (RescueNet, xBD) | à faire | `data/` |
+| 1 | Collecte des données publiques (RescueNet, xBD) | en cours | `data/` |
 | 2 | Entraînement du modèle de détection IA (multi-classes) | à faire | `ai_detection/` |
 | 3 | Photogrammétrie (OpenDroneMap/WebODM) sur données d'exemple | à faire | `mapping/photogrammetry/` |
 | 4 | Module de cartographie et priorisation | à faire | `mapping/`, `prioritization/` |
@@ -21,10 +21,16 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 ## Détail par étape
 
 ### Étape 1 — Collecte des données publiques
-- Scripts de téléchargement RescueNet/xBD (`data/scripts/`).
-- Conversion vers un format unifié (COCO ou YOLO).
-- Split train/val/test documenté et versionné.
-- Statistiques de classes consignées dans `docs/datasets.md`.
+- [x] Scripts de téléchargement RescueNet/xBD (`data/scripts/`), écrits et testés.
+- [x] Conversion vers un format unifié (COCO), testée sur données synthétiques
+  (`tests/test_prepare_dataset.py`).
+- [ ] Téléchargement réel des jeux de données complets (pas encore effectué — volumes
+  importants, à faire sur une machine dédiée).
+- [ ] Statistiques de classes réelles consignées dans `docs/datasets.md` (après
+  téléchargement).
+- **Point important découvert** : ni RescueNet ni xBD ne contiennent d'annotations de
+  personnes/victimes → un 3e jeu de données (SARD, HERIDAL, ou VisDrone) sera nécessaire pour
+  les fonctionnalités #1, #8, #16, #22. Voir `docs/datasets.md`.
 
 ### Étape 2 — Entraînement du modèle de détection IA
 - Entraînement multi-classes (YOLOv8/v11) sur RescueNet/xBD.

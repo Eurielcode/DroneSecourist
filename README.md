@@ -23,15 +23,24 @@ seulement en fin d'étape.
 
 ## État actuel
 
-**Phase : Étape 0 — Mise en place initiale du dépôt.**
+**Phase : Étape 1 — Collecte des données publiques (RescueNet, xBD), en cours.**
 
-- Arborescence du projet créée (voir structure ci-dessous), un module par grande
-  fonctionnalité/étape de la feuille de route.
-- Aucun code fonctionnel n'existe encore : ni collecte de données, ni modèle IA, ni pipeline
-  de cartographie, ni tableau de bord. Chaque module contient un `README.md` décrivant son
-  rôle et son statut (`à faire` pour tous à ce stade).
-- Prochaine étape concrète : **Étape 1 — Collecte des données publiques (RescueNet, xBD)**,
-  à démarrer et valider avant de passer à l'entraînement du modèle IA.
+- Arborescence complète du projet en place (un module par grande fonctionnalité/étape de la
+  feuille de route), chaque module documenté par son propre `README.md`.
+- **Étape 1 (`data/`)** : scripts de téléchargement (`download_rescuenet.py`,
+  `download_xbd.py`) et de conversion vers un format unifié de type COCO
+  (`prepare_dataset.py`) écrits et **testés** (données synthétiques, voir
+  `tests/test_prepare_dataset.py` — 2 tests passent, un bug réel de calcul de bbox a été
+  détecté et corrigé). Le téléchargement réel des jeux de données complets n'a pas encore été
+  effectué (volumes trop importants pour l'environnement de développement actuel) — à lancer
+  sur une machine avec assez d'espace disque et un accès réseau complet.
+- **Point important découvert pendant la recherche** : ni RescueNet ni xBD ne contiennent
+  d'annotations de personnes/victimes — seulement des dégâts de bâtiments et du terrain. Les
+  fonctionnalités de détection de victimes (#1, #8, #16, #22) nécessiteront un jeu de données
+  complémentaire (pistes : SARD, HERIDAL, VisDrone). Détails dans
+  [`docs/datasets.md`](docs/datasets.md).
+- Tous les autres modules (`ai_detection/`, `mapping/`, `dashboard/`, etc.) restent au statut
+  `à faire`.
 
 ## Structure du dépôt
 
@@ -83,7 +92,9 @@ Chaque dossier de module a son propre `README.md` avec son rôle et son statut d
 
 Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
-1. **Collecte des données publiques** (RescueNet, xBD) — prochaine étape à démarrer.
+1. **Collecte des données publiques** (RescueNet, xBD) — scripts prêts, reste à : lancer le
+   téléchargement réel sur une machine adaptée, et évaluer un 3e jeu de données pour la
+   détection de personnes (SARD/HERIDAL/VisDrone).
 2. Entraînement du modèle de détection IA (multi-classes).
 3. Mise en place de la photogrammétrie (OpenDroneMap/WebODM) sur données d'exemple.
 4. Module de cartographie et priorisation.
@@ -98,6 +109,14 @@ Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
 ## Journal des changements
 
+- **2026-08-27** — Étape 1 (collecte de données) : recherche des sources officielles
+  RescueNet/xBD (structure, classes, licences), implémentation et test des scripts de
+  téléchargement (`download_rescuenet.py`, `download_xbd.py`) et de conversion vers un format
+  unifié COCO (`prepare_dataset.py`), avec tests sur données synthétiques
+  (`tests/test_prepare_dataset.py`). Documentation détaillée dans `docs/datasets.md` et
+  décision de format dans `docs/decisions/2026-08-27-format-annotations-unifie.md`.
+  **Point important** : ni RescueNet ni xBD ne couvrent la détection de personnes/victimes —
+  un jeu de données complémentaire sera nécessaire.
 - **2026-08-27** — Mise en place initiale du dépôt : arborescence complète des modules,
   README par module, `ROADMAP.md`, `.gitignore`, squelettes des scripts de collecte de
   données (RescueNet/xBD).
