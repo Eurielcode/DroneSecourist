@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Données (téléchargées/générées, jamais commitées)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Modèles entraînés / poids (trop volumineux pour git)
+ai_detection/models/
+*.pt
+*.onnx
+*.h5
+
+# Photogrammétrie (sorties volumineuses)
+mapping/photogrammetry/**/output/
+*.tif
+*.tiff
+*.las
+*.laz
+
+# Frontend
+dashboard/frontend/node_modules/
+dashboard/frontend/dist/
+
+# Environnement / secrets
+.env
+.env.*
+!*.env.example
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Éditeurs / OS
+.vscode/
+.idea/
+.DS_Store
