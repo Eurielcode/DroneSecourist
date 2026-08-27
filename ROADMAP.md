@@ -21,16 +21,16 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 ## Détail par étape
 
 ### Étape 1 — Collecte des données publiques
-- [x] Scripts de téléchargement RescueNet/xBD (`data/scripts/`), écrits et testés.
+- [x] Scripts de téléchargement RescueNet/xBD/**SARD** (`data/scripts/`), écrits et testés.
 - [x] Conversion vers un format unifié (COCO), testée sur données synthétiques
-  (`tests/test_prepare_dataset.py`).
-- [ ] Téléchargement réel des jeux de données complets (pas encore effectué — volumes
-  importants, à faire sur une machine dédiée).
+  (`tests/test_prepare_dataset.py`, 3 tests).
+- [x] Point découvert et résolu : ni RescueNet ni xBD ne contiennent d'annotations de
+  personnes/victimes → **SARD** (Search And Rescue image Dataset) ajouté pour couvrir les
+  fonctionnalités #1, #8, #16, #22 (catégorie unifiée `person`). Voir `docs/datasets.md`.
+- [ ] Téléchargement réel des trois jeux de données complets (pas encore effectué — volumes
+  importants et/ou inscriptions requises, à faire sur une machine dédiée).
 - [ ] Statistiques de classes réelles consignées dans `docs/datasets.md` (après
   téléchargement).
-- **Point important découvert** : ni RescueNet ni xBD ne contiennent d'annotations de
-  personnes/victimes → un 3e jeu de données (SARD, HERIDAL, ou VisDrone) sera nécessaire pour
-  les fonctionnalités #1, #8, #16, #22. Voir `docs/datasets.md`.
 
 ### Étape 2 — Entraînement du modèle de détection IA
 - Entraînement multi-classes (YOLOv8/v11) sur RescueNet/xBD.

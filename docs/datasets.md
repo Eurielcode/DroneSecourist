@@ -4,22 +4,34 @@ Statut : documenté (étape 1 en cours — scripts de téléchargement/conversio
 avec des données synthétiques ; téléchargement réel des jeux de données pas encore effectué,
 voir « Comment récupérer les données » ci-dessous).
 
-## ⚠️ Limite critique : aucune annotation de victimes
+## ⚠️ Limite identifiée : RescueNet et xBD ne couvrent pas les victimes
 
 **Ni RescueNet ni xBD ne contiennent d'annotations de personnes/victimes.** Les deux jeux de
 données portent uniquement sur les dégâts de bâtiments et l'occupation du sol (routes, eau,
 végétation, véhicules). Conséquence directe sur la feuille de route :
 
 - Les fonctionnalités **#1 (détection de victimes)**, **#8 (corps sans signe de vie)**,
-  **#16 (estimation du nombre de personnes)** et **#22 (signaux de détresse visuels)** ne
-  peuvent **pas** être entraînées à partir de ces deux jeux de données seuls.
-- Il faudra ajouter un troisième jeu de données orienté détection de personnes en vue aérienne
-  pour ces fonctionnalités, par exemple : **SARD** (Search And Rescue image Dataset),
-  **HERIDAL** (détection de personnes en montagne depuis un drone), ou la classe "person" de
-  **VisDrone**. À évaluer et ajouter dans une itération ultérieure de l'étape 1.
-- RescueNet et xBD restent en revanche directement exploitables pour les fonctionnalités liées
-  au terrain/bâtiments : **#5, #6, #7, #9, #15** (chemins praticables, zones dangereuses,
+  **#16 (estimation du nombre de personnes)** et **#22 (signaux de détresse visuels)**
+  n'auraient pas pu être entraînées à partir de ces deux jeux de données seuls.
+- RescueNet et xBD restent directement exploitables pour les fonctionnalités liées au
+  terrain/bâtiments : **#5, #6, #7, #9, #15** (chemins praticables, zones dangereuses,
   évolution du terrain, priorisation, accessibilité des bâtiments).
+- **Un troisième jeu de données, SARD, a été ajouté pour combler ce manque** (voir
+  section dédiée ci-dessous) : il couvre spécifiquement la détection de personnes en vue
+  drone dans des scénarios de recherche-sauvetage.
+
+### Pourquoi SARD plutôt que HERIDAL ou VisDrone
+
+- **HERIDAL** est thématiquement idéal (personnes en zone montagneuse/sauvage vues depuis un
+  drone) mais aucun lien de téléchargement public direct n'a été trouvé — l'accès semble se
+  faire sur demande aux auteurs, ce qui n'est pas scriptable de façon fiable.
+- **VisDrone** est facilement scriptable (dépôt GitHub officiel, liens directs) et contient
+  une classe "pedestrian"/"people", mais ses scènes sont urbaines/routières (trafic, foules),
+  peu représentatives d'un contexte de catastrophe naturelle.
+- **SARD** est spécifiquement conçu pour la détection de personnes en vue drone dans des
+  scénarios de recherche-sauvetage simulés (personnes en marche, debout, assises, allongées,
+  sur route, forêt, herbe haute, carrière) — le plus proche du cas d'usage réel du projet — et
+  dispose d'un miroir Kaggle scriptable.
 
 ## RescueNet
 
@@ -78,11 +90,38 @@ végétation, véhicules). Conséquence directe sur la feuille de route :
   major-damage, destroyed, un-classified}` (uniquement dans les labels *post_disaster* ; les
   labels *pre_disaster* ne portent que le contour du bâtiment, sans dégât).
 
+## SARD (Search And Rescue image Dataset)
+
+- **Publication** : Ivašić-Kos et al., publiée sur IEEE DataPort.
+- **Contenu** : 1 981 images extraites de vidéos drone, personnes en situation simulée de
+  recherche-sauvetage (marche, course, station debout, assise, allongée), terrain varié
+  (route, carrière, herbe haute/basse, sous-bois). Classe unique : `person`.
+- **Licence** : à vérifier précisément sur la page IEEE DataPort (site non accessible depuis
+  l'environnement de développement utilisé pour ce projet) — citer la publication en cas
+  d'utilisation, par précaution.
+- **Téléchargement** :
+  - Miroir Kaggle (retenu, scriptable) : https://www.kaggle.com/datasets/nikolasgegenava/sard-search-and-rescue
+  - Source originale : https://ieee-dataport.org/documents/search-and-rescue-image-dataset-person-detection-sard
+  - Miroir Roboflow (déjà au format YOLO) : https://universe.roboflow.com/dataset-ay6sw/sard-peykp
+  - Script : `python data/scripts/download_sard.py` (nécessite un jeton API Kaggle, voir le
+    script pour la procédure)
+- **Structure attendue après téléchargement** (`data/raw/sard/`) :
+  ```
+  train/images/*.jpg   train/labels/*.txt
+  valid/images/*.jpg   valid/labels/*.txt
+  test/images/*.jpg    test/labels/*.txt
+  ```
+  (labels au format YOLO : `<classe> <x_centre> <y_centre> <largeur> <hauteur>`, coordonnées
+  normalisées [0,1], classe unique `0` = person). **Hypothèse à valider** une fois le jeu de
+  données réellement téléchargé et inspecté — le miroir Kaggle brut pourrait utiliser un autre
+  format.
+
 ## Format unifié
 
-Les deux jeux de données sont convertis vers un format commun de type COCO par
-`data/scripts/prepare_dataset.py`. Détail de la décision et de la taxonomie de catégories
-partagée : [`docs/decisions/2026-08-27-format-annotations-unifie.md`](decisions/2026-08-27-format-annotations-unifie.md).
+Les trois jeux de données sont convertis vers un format commun de type COCO par
+`data/scripts/prepare_dataset.py` (catégorie `person` ajoutée pour SARD). Détail de la
+décision et de la taxonomie de catégories partagée :
+[`docs/decisions/2026-08-27-format-annotations-unifie.md`](decisions/2026-08-27-format-annotations-unifie.md).
 
 ## Comment récupérer les données
 
@@ -90,10 +129,11 @@ partagée : [`docs/decisions/2026-08-27-format-annotations-unifie.md`](decisions
 pip install -r requirements.txt
 python data/scripts/download_rescuenet.py     # automatique
 python data/scripts/download_xbd.py           # nécessite d'avoir téléchargé les .tar.gz manuellement au préalable (voir ci-dessus)
+python data/scripts/download_sard.py          # nécessite un jeton API Kaggle (voir le script)
 python data/scripts/prepare_dataset.py        # génère data/processed/{train,val,test}.json
 ```
 
-Ces trois scripts sont écrits et testés (voir `tests/test_prepare_dataset.py`), mais le
+Ces quatre scripts sont écrits et testés (voir `tests/test_prepare_dataset.py`), mais le
 téléchargement réel des jeux de données complets n'a pas encore été exécuté (volumes trop
 importants pour l'environnement de développement actuel) — à faire sur une machine avec
 suffisamment d'espace disque et un accès réseau complet.

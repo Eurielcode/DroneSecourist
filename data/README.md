@@ -14,8 +14,10 @@ données synthétiques ; téléchargement réel des jeux de données pas encore 
   - `download_rescuenet.py` : téléchargement automatique depuis Dropbox/Figshare.
   - `download_xbd.py` : détection + extraction des archives xBD téléchargées manuellement
     (inscription obligatoire sur xview2.org, voir `docs/datasets.md`).
-  - `prepare_dataset.py` : conversion des annotations RescueNet (masques RVB) et xBD
-    (polygones WKT) vers un format unifié de type COCO. Testé dans
+  - `download_sard.py` : téléchargement du jeu de données SARD (détection de personnes,
+    ajouté pour combler l'absence de victimes dans RescueNet/xBD) via l'API Kaggle.
+  - `prepare_dataset.py` : conversion des annotations RescueNet (masques RVB), xBD
+    (polygones WKT) et SARD (boîtes YOLO) vers un format unifié de type COCO. Testé dans
     `tests/test_prepare_dataset.py`.
 
 ## Comment récupérer les données
@@ -24,14 +26,15 @@ données synthétiques ; téléchargement réel des jeux de données pas encore 
 pip install -r requirements.txt
 python data/scripts/download_rescuenet.py
 python data/scripts/download_xbd.py       # après téléchargement manuel des .tar.gz, voir docs/datasets.md
+python data/scripts/download_sard.py      # nécessite un jeton API Kaggle, voir le script
 python data/scripts/prepare_dataset.py
 ```
 
-## Limite connue
+## Limite connue (comblée par l'ajout de SARD)
 
-Ni RescueNet ni xBD ne contiennent d'annotations de personnes/victimes — voir
-`docs/datasets.md` (section « Limite critique ») pour les conséquences sur la feuille de
-route et les pistes de jeux de données complémentaires.
+RescueNet et xBD ne contenaient pas d'annotations de personnes/victimes ; le jeu de données
+SARD a été ajouté pour couvrir la détection de personnes en vue drone. Voir `docs/datasets.md`
+pour le détail des trois jeux de données et la justification du choix de SARD.
 
 Voir aussi [`docs/datasets.md`](../docs/datasets.md) pour tous les détails (licences,
 structure exacte, classes).

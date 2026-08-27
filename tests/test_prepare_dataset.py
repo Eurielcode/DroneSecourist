@@ -1,9 +1,9 @@
-"""Tests des convertisseurs RescueNet/xBD -> format unifié, avec des données synthétiques.
+"""Tests des convertisseurs RescueNet/xBD/SARD -> format unifié, avec des données synthétiques.
 
 Le jeu de données réel n'est pas disponible dans l'environnement de développement (taille,
-inscription requise pour xBD) : ces tests construisent de fausses images/labels minimalistes
-pour valider que la logique de conversion produit une structure COCO cohérente. À revalider
-manuellement avec un échantillon réel une fois les données téléchargées (étape 1).
+inscription requise pour xBD/SARD) : ces tests construisent de fausses images/labels
+minimalistes pour valider que la logique de conversion produit une structure COCO cohérente.
+À revalider manuellement avec un échantillon réel une fois les données téléchargées (étape 1).
 """
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "data" / "script
 from prepare_dataset import (  # noqa: E402
     CATEGORY_IDS,
     convert_rescuenet_split,
+    convert_sard_split,
     convert_xbd_split,
 )
 
@@ -100,3 +101,34 @@ def test_convert_xbd_split(tmp_path: Path) -> None:
     assert len(coco["annotations"]) == 1
     assert coco["annotations"][0]["category_id"] == CATEGORY_IDS["building_major_damage"]
     assert coco["annotations"][0]["bbox"] == [10.0, 10.0, 20.0, 20.0]
+
+
+def _make_sard_split(tmp_path: Path) -> Path:
+    split_dir = tmp_path / "train"
+    images_dir = split_dir / "images"
+    labels_dir = split_dir / "labels"
+    images_dir.mkdir(parents=True)
+    labels_dir.mkdir(parents=True)
+
+    height, width = 200, 100
+    image = np.zeros((height, width, 3), dtype=np.uint8)
+    cv2.imwrite(str(images_dir / "frame_001.jpg"), image)
+
+    # Une personne centrée en (0.5, 0.25) de taille (0.2 x 0.1) en coordonnées normalisées.
+    (labels_dir / "frame_001.txt").write_text("0 0.5 0.25 0.2 0.1\n")
+
+    return split_dir
+
+
+def test_convert_sard_split(tmp_path: Path) -> None:
+    split_dir = _make_sard_split(tmp_path)
+    coco = convert_sard_split(split_dir)
+
+    assert len(coco["images"]) == 1
+    assert coco["images"][0]["file_name"] == "frame_001.jpg"
+
+    assert len(coco["annotations"]) == 1
+    ann = coco["annotations"][0]
+    assert ann["category_id"] == CATEGORY_IDS["person"]
+    # width=100 -> x_center=50, box_w=20 -> x_min=40 ; height=200 -> y_center=50, box_h=20 -> y_min=40
+    assert ann["bbox"] == [40.0, 40.0, 20.0, 20.0]

@@ -4,6 +4,7 @@
 requests
 numpy
 opencv-python-headless
+kaggle  # téléchargement de SARD (data/scripts/download_sard.py)
 
 # tests
 pytest

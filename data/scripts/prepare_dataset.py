@@ -1,15 +1,14 @@
-"""Conversion de RescueNet et xBD vers un format d'annotations unifié (style COCO).
+"""Conversion de RescueNet, xBD et SARD vers un format d'annotations unifié (style COCO).
 
 Décision de format documentée dans docs/decisions/2026-08-27-format-annotations-unifie.md.
 
 RescueNet fournit des masques de segmentation RVB multi-classes (une couleur par classe,
 voir RESCUENET_COLOR_TO_CATEGORY) ; xBD fournit des polygones de bâtiments au format WKT dans
-des fichiers JSON, avec un niveau de dégât par bâtiment (voir XBD_SUBTYPE_TO_CATEGORY).
+des fichiers JSON, avec un niveau de dégât par bâtiment (voir XBD_SUBTYPE_TO_CATEGORY) ; SARD
+fournit des boîtes englobantes de personnes au format YOLO (voir convert_sard_split).
 
-Important : aucun des deux jeux de données ne contient d'annotations de personnes/victimes
-(voir docs/datasets.md, section « Limite critique »). Ce script ne couvre donc que les
-classes de dégâts/terrain (bâtiments, routes, eau, véhicules, arbres, piscines), pas la
-détection de victimes.
+RescueNet et xBD ne contiennent aucune annotation de personnes/victimes (voir
+docs/datasets.md, section « Limite critique ») : c'est SARD qui couvre cette classe.
 
 Les fonctions de conversion sont testées avec des données synthétiques dans
 tests/test_prepare_dataset.py (le jeu de données réel n'est pas présent dans cet
@@ -40,6 +39,7 @@ UNIFIED_CATEGORIES = [
     "vehicle",
     "tree",
     "pool",
+    "person",
 ]
 CATEGORY_IDS = {name: idx + 1 for idx, name in enumerate(UNIFIED_CATEGORIES)}
 
@@ -212,6 +212,65 @@ def convert_xbd_split(split_dir: Path) -> dict:
     return coco
 
 
+_IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
+
+
+def convert_sard_split(split_dir: Path) -> dict:
+    """Convertit un split SARD (format YOLO) en dict COCO.
+
+    Hypothèse de structure (format YOLO le plus courant pour ce jeu de données, notamment via
+    son miroir Roboflow) : split_dir/images/*.{jpg,png} et split_dir/labels/*.txt, une ligne
+    par personne au format YOLO normalisé : "<classe> <x_centre> <y_centre> <largeur>
+    <hauteur>". SARD est mono-classe (person). À valider/ajuster une fois le jeu de données
+    réel téléchargé et inspecté (voir docs/datasets.md) — le mirroir Kaggle brut pourrait
+    utiliser un format d'annotation différent.
+    """
+    coco = _new_coco_dict()
+    images_dir = split_dir / "images"
+    labels_dir = split_dir / "labels"
+    if not images_dir.exists() or not labels_dir.exists():
+        raise FileNotFoundError(
+            f"Structure SARD inattendue dans {split_dir} (images/ ou labels/ introuvable)."
+        )
+
+    for label_path in sorted(labels_dir.glob("*.txt")):
+        image_path = next(
+            (
+                candidate
+                for ext in _IMAGE_EXTENSIONS
+                if (candidate := images_dir / f"{label_path.stem}{ext}").exists()
+            ),
+            None,
+        )
+        if image_path is None:
+            continue
+        image = cv2.imread(str(image_path))
+        if image is None:
+            continue
+        height, width = image.shape[:2]
+        image_id = _add_image(coco, image_path.name, width, height)
+
+        for line in label_path.read_text().splitlines():
+            parts = line.split()
+            if len(parts) != 5:
+                continue
+            _, x_center, y_center, box_w, box_h = (float(p) for p in parts)
+            x_min = (x_center - box_w / 2) * width
+            y_min = (y_center - box_h / 2) * height
+            abs_w, abs_h = box_w * width, box_h * height
+            polygon = np.array(
+                [
+                    [x_min, y_min],
+                    [x_min + abs_w, y_min],
+                    [x_min + abs_w, y_min + abs_h],
+                    [x_min, y_min + abs_h],
+                ]
+            )
+            _add_polygon_annotation(coco, image_id, "person", polygon)
+
+    return coco
+
+
 def _merge_coco(dicts: Iterable[dict]) -> dict:
     merged = _new_coco_dict()
     image_id_offset = 0
@@ -243,6 +302,13 @@ def prepare_dataset(raw_dir: Path = Path("data/raw"), output_dir: Path = Path("d
         xbd_split = raw_dir / "xbd" / ("hold" if split == "val" else split)
         if xbd_split.exists():
             cocos.append(convert_xbd_split(xbd_split))
+
+        # SARD (miroir Roboflow) nomme son split de validation "valid", pas "val".
+        for sard_split_name in ({"val": "valid"}.get(split, split), split):
+            sard_split = raw_dir / "sard" / sard_split_name
+            if sard_split.exists():
+                cocos.append(convert_sard_split(sard_split))
+                break
 
         if not cocos:
             continue

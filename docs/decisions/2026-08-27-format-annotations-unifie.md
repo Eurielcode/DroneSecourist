@@ -32,11 +32,12 @@ Implémenté dans `data/scripts/prepare_dataset.py`, testé avec des données sy
 
 - Format directement compatible avec les frameworks d'entraînement usuels (Ultralytics YOLO
   après conversion COCO→YOLO, Detectron2, etc.) pour l'étape 2.
-- **Limite majeure** : ce format ne couvre que les classes de dégâts/terrain. **Ni RescueNet
-  ni xBD ne contiennent d'annotations de personnes/victimes** (voir `docs/datasets.md`,
-  section « Limite critique »). Les fonctionnalités de détection de victimes (#1, #8, #16,
-  #22) nécessiteront un jeu de données complémentaire, à ajouter dans une prochaine itération
-  de l'étape 1.
+- **Limite identifiée** : RescueNet et xBD ne couvrent que les classes de dégâts/terrain,
+  aucune annotation de personnes/victimes (voir `docs/datasets.md`). **Mise à jour du même
+  jour** : un troisième jeu de données, **SARD** (Search And Rescue image Dataset), a été
+  ajouté pour combler ce manque, avec une catégorie unifiée `person` supplémentaire — voir
+  `convert_sard_split` dans `data/scripts/prepare_dataset.py` et la section SARD de
+  `docs/datasets.md`.
 - À revalider avec les données réelles une fois téléchargées : la logique n'a été testée que
   sur des exemples synthétiques minimalistes, pas sur la variabilité réelle des masques/labels
-  (bâtiments qui se touchent, contours complexes, etc.).
+  (bâtiments qui se touchent, contours complexes, format exact des labels SARD, etc.).

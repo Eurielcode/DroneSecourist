@@ -23,21 +23,22 @@ seulement en fin d'étape.
 
 ## État actuel
 
-**Phase : Étape 1 — Collecte des données publiques (RescueNet, xBD), en cours.**
+**Phase : Étape 1 — Collecte des données publiques (RescueNet, xBD, SARD), en cours.**
 
 - Arborescence complète du projet en place (un module par grande fonctionnalité/étape de la
   feuille de route), chaque module documenté par son propre `README.md`.
 - **Étape 1 (`data/`)** : scripts de téléchargement (`download_rescuenet.py`,
-  `download_xbd.py`) et de conversion vers un format unifié de type COCO
+  `download_xbd.py`, `download_sard.py`) et de conversion vers un format unifié de type COCO
   (`prepare_dataset.py`) écrits et **testés** (données synthétiques, voir
-  `tests/test_prepare_dataset.py` — 2 tests passent, un bug réel de calcul de bbox a été
-  détecté et corrigé). Le téléchargement réel des jeux de données complets n'a pas encore été
-  effectué (volumes trop importants pour l'environnement de développement actuel) — à lancer
-  sur une machine avec assez d'espace disque et un accès réseau complet.
-- **Point important découvert pendant la recherche** : ni RescueNet ni xBD ne contiennent
-  d'annotations de personnes/victimes — seulement des dégâts de bâtiments et du terrain. Les
-  fonctionnalités de détection de victimes (#1, #8, #16, #22) nécessiteront un jeu de données
-  complémentaire (pistes : SARD, HERIDAL, VisDrone). Détails dans
+  `tests/test_prepare_dataset.py` — 3 tests passent ; un bug réel de calcul de bbox a été
+  détecté et corrigé en cours de route). Le téléchargement réel des jeux de données complets
+  n'a pas encore été effectué (volumes importants et/ou inscriptions requises) — à lancer sur
+  une machine avec assez d'espace disque et un accès réseau complet.
+- **Point découvert et résolu pendant la recherche** : ni RescueNet ni xBD ne contiennent
+  d'annotations de personnes/victimes — seulement des dégâts de bâtiments et du terrain. Un
+  troisième jeu de données, **SARD** (Search And Rescue image Dataset — personnes vues depuis
+  un drone en scénario de recherche-sauvetage), a été ajouté pour couvrir les fonctionnalités
+  #1, #8, #16, #22. Détails et justification du choix dans
   [`docs/datasets.md`](docs/datasets.md).
 - Tous les autres modules (`ai_detection/`, `mapping/`, `dashboard/`, etc.) restent au statut
   `à faire`.
@@ -92,9 +93,8 @@ Chaque dossier de module a son propre `README.md` avec son rôle et son statut d
 
 Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
-1. **Collecte des données publiques** (RescueNet, xBD) — scripts prêts, reste à : lancer le
-   téléchargement réel sur une machine adaptée, et évaluer un 3e jeu de données pour la
-   détection de personnes (SARD/HERIDAL/VisDrone).
+1. **Collecte des données publiques** (RescueNet, xBD, SARD) — scripts prêts et testés, reste
+   à lancer le téléchargement réel des trois jeux de données sur une machine adaptée.
 2. Entraînement du modèle de détection IA (multi-classes).
 3. Mise en place de la photogrammétrie (OpenDroneMap/WebODM) sur données d'exemple.
 4. Module de cartographie et priorisation.
@@ -109,6 +109,11 @@ Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
 ## Journal des changements
 
+- **2026-08-27** — Étape 1 (collecte de données), suite : ajout du jeu de données **SARD**
+  (Search And Rescue image Dataset) pour combler l'absence d'annotations de personnes/victimes
+  dans RescueNet/xBD — `download_sard.py`, catégorie unifiée `person` dans
+  `prepare_dataset.py`, test dédié (`tests/test_prepare_dataset.py`, 3 tests passent).
+  Justification du choix (vs HERIDAL/VisDrone) documentée dans `docs/datasets.md`.
 - **2026-08-27** — Étape 1 (collecte de données) : recherche des sources officielles
   RescueNet/xBD (structure, classes, licences), implémentation et test des scripts de
   téléchargement (`download_rescuenet.py`, `download_xbd.py`) et de conversion vers un format
