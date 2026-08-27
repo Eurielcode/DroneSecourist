@@ -303,10 +303,19 @@ def prepare_dataset(raw_dir: Path = Path("data/raw"), output_dir: Path = Path("d
         if xbd_split.exists():
             cocos.append(convert_xbd_split(xbd_split))
 
-        # SARD (miroir Roboflow) nomme son split de validation "valid", pas "val".
+        # SARD (miroir Roboflow) nomme son split de validation "valid", pas "val", et certains
+        # miroirs (ex. Kaggle) extraient les données dans un sous-dossier intermédiaire
+        # (ex. sard/search-and-rescue/train/) : on cherche récursivement le bon dossier.
         for sard_split_name in ({"val": "valid"}.get(split, split), split):
-            sard_split = raw_dir / "sard" / sard_split_name
-            if sard_split.exists():
+            sard_split = next(
+                (
+                    candidate
+                    for candidate in raw_dir.glob(f"sard/**/{sard_split_name}")
+                    if (candidate / "images").exists() and (candidate / "labels").exists()
+                ),
+                None,
+            )
+            if sard_split is not None:
                 cocos.append(convert_sard_split(sard_split))
                 break
 
