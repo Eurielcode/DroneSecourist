@@ -136,7 +136,11 @@ def convert_rescuenet_split(split_dir: Path) -> dict:
         )
     img_dir, label_dir = img_dirs[0], label_dirs[0]
 
-    for image_path in sorted(img_dir.glob("*.jpg")):
+    image_paths = sorted(img_dir.glob("*.jpg"))
+    total = len(image_paths)
+    for index, image_path in enumerate(image_paths, start=1):
+        if index == 1 or index % 100 == 0 or index == total:
+            print(f"\r  RescueNet {split_dir.name} : image {index}/{total}", end="", flush=True)
         label_path = _find_matching_label(image_path, label_dir)
         if label_path is None:
             continue
@@ -155,6 +159,8 @@ def convert_rescuenet_split(split_dir: Path) -> dict:
             for contour in contours:
                 _add_polygon_annotation(coco, image_id, category_name, contour)
 
+    if total:
+        print()
     return coco
 
 
