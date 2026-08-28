@@ -5,7 +5,7 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 | # | Étape | Statut | Module(s) principal(aux) |
 |---|---|---|---|
 | 0 | Mise en place initiale du dépôt | fait | (structure complète) |
-| 1 | Collecte des données publiques (RescueNet, xBD) | en cours | `data/` |
+| 1 | Collecte des données publiques (RescueNet, xBD, SARD) | quasiment fait | `data/` |
 | 2 | Entraînement du modèle de détection IA (multi-classes) | à faire | `ai_detection/` |
 | 3 | Photogrammétrie (OpenDroneMap/WebODM) sur données d'exemple | à faire | `mapping/photogrammetry/` |
 | 4 | Module de cartographie et priorisation | à faire | `mapping/`, `prioritization/` |
@@ -22,15 +22,19 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 
 ### Étape 1 — Collecte des données publiques
 - [x] Scripts de téléchargement RescueNet/xBD/**SARD** (`data/scripts/`), écrits et testés.
-- [x] Conversion vers un format unifié (COCO), testée sur données synthétiques
-  (`tests/test_prepare_dataset.py`, 3 tests).
 - [x] Point découvert et résolu : ni RescueNet ni xBD ne contiennent d'annotations de
   personnes/victimes → **SARD** (Search And Rescue image Dataset) ajouté pour couvrir les
   fonctionnalités #1, #8, #16, #22 (catégorie unifiée `person`). Voir `docs/datasets.md`.
-- [ ] Téléchargement réel des trois jeux de données complets (pas encore effectué — volumes
-  importants et/ou inscriptions requises, à faire sur une machine dédiée).
-- [ ] Statistiques de classes réelles consignées dans `docs/datasets.md` (après
-  téléchargement).
+- [x] **Téléchargement réel des trois jeux de données effectué** : RescueNet via Figshare
+  (Dropbox ne fonctionne pas en pratique), SARD et xBD via des miroirs Kaggle (xview2.org
+  instable). Voir `docs/datasets.md` pour les sources exactes et contournements utilisés.
+- [x] **Conversion vers le format unifié COCO validée sur données réelles**
+  (`prepare_dataset.py`) : train 7636 images, val 1593 images, test 1020 images. Un bug
+  bloquant a été découvert et corrigé au passage (masques RescueNet mono-canal à indices, pas
+  RVB comme documenté officiellement) — voir
+  `docs/decisions/2026-08-27-format-annotations-unifie.md`.
+- [ ] Statistiques de classes détaillées à consigner dans `docs/datasets.md` (déséquilibre
+  entre classes, etc.) — reste à faire avant de clore complètement l'étape.
 
 ### Étape 2 — Entraînement du modèle de détection IA
 - Entraînement multi-classes (YOLOv8/v11) sur RescueNet/xBD.

@@ -2,8 +2,10 @@
 
 Décision de format documentée dans docs/decisions/2026-08-27-format-annotations-unifie.md.
 
-RescueNet fournit des masques de segmentation RVB multi-classes (une couleur par classe,
-voir RESCUENET_COLOR_TO_CATEGORY) ; xBD fournit des polygones de bâtiments au format WKT dans
+RescueNet fournit des masques de segmentation mono-canal (un indice de classe 0-10 par
+pixel, voir RESCUENET_INDEX_TO_CATEGORY — les couleurs RVB documentées par le dépôt officiel
+ne servent qu'à la visualisation, pas au fichier réel) ; xBD fournit des polygones de
+bâtiments au format WKT dans
 des fichiers JSON, avec un niveau de dégât par bâtiment (voir XBD_SUBTYPE_TO_CATEGORY) ; SARD
 fournit des boîtes englobantes de personnes au format YOLO (voir convert_sard_split).
 
@@ -43,19 +45,20 @@ UNIFIED_CATEGORIES = [
 ]
 CATEGORY_IDS = {name: idx + 1 for idx, name in enumerate(UNIFIED_CATEGORIES)}
 
-# Couleurs RVB des masques RescueNet -> catégorie unifiée.
+# Indice de classe (valeur du pixel dans le masque mono-canal) -> catégorie unifiée.
 # Source : Segmentation-Experiments/data/rescuenet.py du dépôt officiel BinaLab/RescueNet.
-RESCUENET_COLOR_TO_CATEGORY = {
-    (61, 230, 250): "water",
-    (180, 120, 120): "building_no_damage",
-    (235, 255, 7): "building_minor_damage",
-    (255, 184, 6): "building_major_damage",
-    (255, 0, 0): "building_destroyed",
-    (255, 0, 245): "vehicle",
-    (140, 140, 140): "road_clear",
-    (160, 150, 20): "road_blocked",
-    (4, 250, 7): "tree",
-    (255, 235, 0): "pool",
+# 0 = Background, non annoté.
+RESCUENET_INDEX_TO_CATEGORY = {
+    1: "water",
+    2: "building_no_damage",
+    3: "building_minor_damage",
+    4: "building_major_damage",
+    5: "building_destroyed",
+    6: "vehicle",
+    7: "road_clear",
+    8: "road_blocked",
+    9: "tree",
+    10: "pool",
 }
 
 # Sous-types de dégât xBD -> catégorie unifiée. "un-classified" est ignoré : pas
@@ -124,7 +127,7 @@ def convert_rescuenet_split(split_dir: Path) -> dict:
     """Convertit un split RescueNet (train/val/test) en dict COCO.
 
     Structure attendue : split_dir/<nom>-org-img/*.jpg et split_dir/<nom>-label-img/*.png
-    (masques RVB multi-classes). Voir docs/datasets.md.
+    (masques mono-canal, valeur de pixel = indice de classe 0-10). Voir docs/datasets.md.
     """
     coco = _new_coco_dict()
     img_dirs = sorted(split_dir.glob("*-org-img"))
@@ -144,15 +147,16 @@ def convert_rescuenet_split(split_dir: Path) -> dict:
         label_path = _find_matching_label(image_path, label_dir)
         if label_path is None:
             continue
-        mask = cv2.imread(str(label_path), cv2.IMREAD_COLOR)
+        mask = cv2.imread(str(label_path), cv2.IMREAD_UNCHANGED)
         if mask is None:
             continue
+        if mask.ndim == 3:
+            mask = mask[:, :, 0]
         height, width = mask.shape[:2]
         image_id = _add_image(coco, image_path.name, width, height)
-        mask_rgb = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
 
-        for color, category_name in RESCUENET_COLOR_TO_CATEGORY.items():
-            binary = np.all(mask_rgb == np.array(color, dtype=mask_rgb.dtype), axis=-1).astype(np.uint8)
+        for class_index, category_name in RESCUENET_INDEX_TO_CATEGORY.items():
+            binary = (mask == class_index).astype(np.uint8)
             if not binary.any():
                 continue
             contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

@@ -34,12 +34,11 @@ def _make_rescuenet_split(tmp_path: Path) -> Path:
     image = np.zeros((height, width, 3), dtype=np.uint8)
     cv2.imwrite(str(img_dir / "0001.jpg"), image)
 
-    # Masque label : fond noir + un carré "building_no_damage" (180,120,120 en RVB -> BGR pour cv2)
-    mask_rgb = np.zeros((height, width, 3), dtype=np.uint8)
-    mask_rgb[5:20, 5:20] = (180, 120, 120)  # building_no_damage
-    mask_rgb[25:35, 25:35] = (4, 250, 7)  # tree
-    mask_bgr = cv2.cvtColor(mask_rgb, cv2.COLOR_RGB2BGR)
-    cv2.imwrite(str(label_dir / "0001_lab.png"), mask_bgr)
+    # Masque label réel RescueNet : mono-canal, valeur de pixel = indice de classe (0-10).
+    mask = np.zeros((height, width), dtype=np.uint8)
+    mask[5:20, 5:20] = 2  # building_no_damage
+    mask[25:35, 25:35] = 9  # tree
+    cv2.imwrite(str(label_dir / "0001_lab.png"), mask)
 
     return split_dir
 

@@ -16,7 +16,8 @@ données synthétiques ; téléchargement réel des jeux de données pas encore 
     (inscription obligatoire sur xview2.org, voir `docs/datasets.md`).
   - `download_sard.py` : téléchargement du jeu de données SARD (détection de personnes,
     ajouté pour combler l'absence de victimes dans RescueNet/xBD) via l'API Kaggle.
-  - `prepare_dataset.py` : conversion des annotations RescueNet (masques RVB), xBD
+  - `prepare_dataset.py` : conversion des annotations RescueNet (masques mono-canal à indices
+    de classe), xBD
     (polygones WKT) et SARD (boîtes YOLO) vers un format unifié de type COCO. Testé dans
     `tests/test_prepare_dataset.py`.
 

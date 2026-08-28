@@ -41,3 +41,30 @@ Implémenté dans `data/scripts/prepare_dataset.py`, testé avec des données sy
 - À revalider avec les données réelles une fois téléchargées : la logique n'a été testée que
   sur des exemples synthétiques minimalistes, pas sur la variabilité réelle des masques/labels
   (bâtiments qui se touchent, contours complexes, format exact des labels SARD, etc.).
+
+## Mise à jour — 2026-08-28 : validation sur données réelles
+
+Les trois jeux de données ont été réellement téléchargés (RescueNet via Figshare, SARD et xBD
+via des miroirs Kaggle faute d'accès fiable aux sources officielles) et passés dans
+`prepare_dataset.py`. Ça a révélé un bug bloquant qui n'existait pas dans les tests
+synthétiques :
+
+- **RescueNet n'est pas encodé en RVB.** L'hypothèse initiale (masque couleur, une couleur par
+  classe) était fausse : les fichiers `*_lab.png` réels sont **mono-canal**, la valeur de
+  chaque pixel étant directement l'indice de classe (0-10). Les couleurs RVB documentées par
+  le dépôt officiel BinaLab ne servent qu'à la visualisation. Avec l'ancien code, la conversion
+  tournait sans erreur mais produisait **zéro annotation** pour RescueNet (aucune couleur ne
+  matchait jamais). Corrigé : `RESCUENET_INDEX_TO_CATEGORY` (indice → catégorie) remplace
+  `RESCUENET_COLOR_TO_CATEGORY`, lecture en `cv2.IMREAD_UNCHANGED` au lieu de `IMREAD_COLOR`.
+- Résultat après correction sur les données réelles : train 7636 images / (annotations à
+  revérifier après le prochain run complet), val 1593 images, test 1020 images — cohérent avec
+  RescueNet (3595/449/450) + SARD augmenté (~4041/1144/570).
+- Les miroirs Kaggle de SARD et xBD extraient chacun dans un sous-dossier intermédiaire
+  (`search-and-rescue/` et `xbd/` respectivement) plutôt que directement à la racine attendue —
+  la résolution de chemin dans `prepare_dataset.py` a été rendue plus tolérante (recherche
+  récursive) pour SARD ; pour xBD, un déplacement manuel du sous-dossier suffit.
+
+Leçon retenue : les tests unitaires sur données synthétiques valident la *logique* de
+conversion (structure COCO, calculs de bbox/aire) mais ne peuvent pas détecter une hypothèse
+erronée sur le *format réel* des fichiers sources — seul un test sur un échantillon réel
+aurait permis de le détecter plus tôt.

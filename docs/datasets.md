@@ -43,30 +43,40 @@ végétation, véhicules). Conséquence directe sur la feuille de route :
 - **Taille** : 4 494 images (~80 % train / ~10 % val / ~10 % test → 3 595 / 449 / 450 images).
 - **Licence** : CC BY-NC-ND — citer la publication, usage non commercial, pas de modification
   redistribuée du jeu de données lui-même.
-- **Téléchargement** :
-  - Dropbox (dossier public) : https://www.dropbox.com/scl/fo/ntgeyhxe2mzd2wuh7he7x/AHJ-cNzQL-Eu04HS6bvBgcw
-  - Figshare (miroir) : https://springernature.figshare.com/collections/RescueNet_A_High_Resolution_UAV_Semantic_Segmentation_Benchmark_Dataset_for_Natural_Disaster_Damage_Assessment/6647354
-  - Script : `python data/scripts/download_rescuenet.py`
+- **Téléchargement** : **le dossier Dropbox public ne fonctionne pas en pratique** (Dropbox
+  refuse de générer un zip à la volée pour un dossier aussi volumineux — testé et confirmé,
+  `download_rescuenet.py` échoue systématiquement). La vraie méthode qui fonctionne est
+  Figshare, avec un lien par split (pas de compte requis) :
+  - Train : https://springernature.figshare.com/articles/dataset/RescueNet_Semantic_Segmentation_Train_Set/22825511
+  - Validation : https://springernature.figshare.com/articles/dataset/RescueNet_Semantic_Segmentation_Validation_Set/22826369
+  - Test : https://springernature.figshare.com/articles/dataset/RescueNet_Semantic_Segmentation_Test_Set/22826459
+  - `download_rescuenet.py` tente Dropbox puis affiche ces liens en instructions manuelles si
+    ça échoue (ce qui est le cas actuel systématique).
 - **Structure attendue après téléchargement** (`data/raw/rescuenet/`) :
   ```
   train/train-org-img/*.jpg      train/train-label-img/*_lab.png
   val/val-org-img/*.jpg          val/val-label-img/*_lab.png
   test/test-org-img/*.jpg        test/test-label-img/*_lab.png
   ```
-- **Classes (masques RVB)** — 10 classes + fond non annoté :
+- **Classes (masques mono-canal, indice de classe par pixel)** — 10 classes + fond non
+  annoté (0). **Vérifié sur les données réelles** : le fichier `.png` de label est une image
+  à un seul canal (pas RVB) où la valeur de chaque pixel est directement l'indice de classe
+  (0-10). Les couleurs RVB documentées par le dépôt officiel BinaLab ne servent qu'à
+  l'affichage/visualisation, pas au fichier livré :
 
-  | Classe | Couleur RVB |
+  | Indice | Classe |
   |---|---|
-  | Water | (61, 230, 250) |
-  | Building No Damage | (180, 120, 120) |
-  | Building Minor Damage | (235, 255, 7) |
-  | Building Major Damage | (255, 184, 6) |
-  | Building Total Destruction | (255, 0, 0) |
-  | Vehicle | (255, 0, 245) |
-  | Road-Clear | (140, 140, 140) |
-  | Road-Blocked | (160, 150, 20) |
-  | Tree | (4, 250, 7) |
-  | Pool | (255, 235, 0) |
+  | 0 | Background (non annoté) |
+  | 1 | Water |
+  | 2 | Building No Damage |
+  | 3 | Building Minor Damage |
+  | 4 | Building Major Damage |
+  | 5 | Building Total Destruction |
+  | 6 | Vehicle |
+  | 7 | Road-Clear |
+  | 8 | Road-Blocked |
+  | 9 | Tree |
+  | 10 | Pool |
 
 ## xBD (xView2 Building Damage)
 
@@ -76,11 +86,26 @@ végétation, véhicules). Conséquence directe sur la feuille de route :
   1024×1024 px, plus de 850 000 polygones de bâtiments annotés, 6 types de catastrophes
   (inondation, incendie, séisme, ouragan, tornade, volcan).
 - **Licence** : CC BY-NC-SA 4.0.
-- **Téléchargement** : **inscription obligatoire** sur https://xview2.org puis téléchargement
-  manuel depuis https://xview2.org/dataset (`train_images_labels_targets.tar.gz`,
+- **Téléchargement officiel** : inscription obligatoire sur https://xview2.org puis
+  téléchargement manuel depuis https://xview2.org/dataset (`train_images_labels_targets.tar.gz`,
   `test_images_labels_targets.tar.gz`, optionnellement `hold_...` et `tier3.tar.gz`) — voir
-  les instructions détaillées affichées par `python data/scripts/download_xbd.py`.
-- **Structure attendue après extraction** (`data/raw/xbd/<split>/`) :
+  les instructions détaillées affichées par `python data/scripts/download_xbd.py`. **En
+  pratique, le site xview2.org peut être indisponible/instable** (constaté lors du
+  développement — connexion qui reste bloquée en chargement).
+- **Solution de contournement utilisée avec succès** : miroir Kaggle
+  `qianlanzz/xbd-dataset` (⚠️ non officiel, licence non précisée — `License(s): unknown`
+  affiché par l'API Kaggle ; à remplacer par la source officielle si xview2.org redevient
+  accessible). Attention : **~31 Go** à télécharger + autant pour l'extraction (~60 Go
+  d'espace disque nécessaires au pic). Téléchargement :
+  ```
+  kaggle datasets download -d qianlanzz/xbd-dataset -p data\raw\xbd_kaggle_mirror --unzip
+  ```
+  Ce miroir extrait dans un sous-dossier `xbd/` intermédiaire
+  (`data/raw/xbd_kaggle_mirror/xbd/{train,test,hold,tier1,tier3}/...`) qu'il faut déplacer
+  vers `data/raw/xbd/` pour que `prepare_dataset.py` le trouve. Contient aussi un split
+  `tier1` non utilisé par notre pipeline (seuls train/test/hold sont consommés).
+- **Structure attendue après extraction** (`data/raw/xbd/<split>/`), confirmée identique
+  entre la source officielle et le miroir Kaggle :
   ```
   images/<id>_pre_disaster.png   images/<id>_post_disaster.png
   labels/<id>_pre_disaster.json  labels/<id>_post_disaster.json
@@ -105,16 +130,18 @@ végétation, véhicules). Conséquence directe sur la feuille de route :
   - Miroir Roboflow (déjà au format YOLO) : https://universe.roboflow.com/dataset-ay6sw/sard-peykp
   - Script : `python data/scripts/download_sard.py` (nécessite un jeton API Kaggle, voir le
     script pour la procédure)
-- **Structure attendue après téléchargement** (`data/raw/sard/`) :
+- **Structure réelle confirmée** (miroir Kaggle `nikolasgegenava/sard-search-and-rescue`,
+  export Roboflow au format YOLO) : les fichiers sont extraits dans un sous-dossier
+  intermédiaire `search-and-rescue/`, ex. `data/raw/sard/search-and-rescue/train/images/*.jpg`
+  + `.../train/labels/*.txt`. `prepare_dataset.py` cherche récursivement le bon dossier
+  (`sard/**/train`, etc.), donc peu importe où exactement il atterrit sous `data/raw/sard/`.
+  Format des labels confirmé : YOLO (`<classe> <x_centre> <y_centre> <largeur> <hauteur>`,
+  coordonnées normalisées [0,1], classe unique `0` = person).
   ```
-  train/images/*.jpg   train/labels/*.txt
-  valid/images/*.jpg   valid/labels/*.txt
-  test/images/*.jpg    test/labels/*.txt
+  data/raw/sard/search-and-rescue/train/images/*.jpg  .../train/labels/*.txt
+  data/raw/sard/search-and-rescue/valid/images/*.jpg  .../valid/labels/*.txt
+  data/raw/sard/search-and-rescue/test/images/*.jpg   .../test/labels/*.txt
   ```
-  (labels au format YOLO : `<classe> <x_centre> <y_centre> <largeur> <hauteur>`, coordonnées
-  normalisées [0,1], classe unique `0` = person). **Hypothèse à valider** une fois le jeu de
-  données réellement téléchargé et inspecté — le miroir Kaggle brut pourrait utiliser un autre
-  format.
 
 ## Format unifié
 
