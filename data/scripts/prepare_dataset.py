@@ -193,7 +193,11 @@ def convert_xbd_split(split_dir: Path) -> dict:
     if not labels_dir.exists():
         raise FileNotFoundError(f"Dossier de labels xBD introuvable : {labels_dir}")
 
-    for label_path in sorted(labels_dir.glob("*_post_disaster.json")):
+    label_paths = sorted(labels_dir.glob("*_post_disaster.json"))
+    total = len(label_paths)
+    for index, label_path in enumerate(label_paths, start=1):
+        if index == 1 or index % 500 == 0 or index == total:
+            print(f"\r  xBD {split_dir.name} : image {index}/{total}", end="", flush=True)
         with open(label_path, encoding="utf-8") as f:
             label = json.load(f)
 
@@ -219,6 +223,8 @@ def convert_xbd_split(split_dir: Path) -> dict:
                 continue
             _add_polygon_annotation(coco, image_id, category_name, polygon)
 
+    if total:
+        print()
     return coco
 
 
@@ -309,9 +315,19 @@ def prepare_dataset(raw_dir: Path = Path("data/raw"), output_dir: Path = Path("d
             cocos.append(convert_rescuenet_split(rescuenet_split))
 
         # xBD n'a pas de split "val" officiel : on utilise son split "hold" comme validation.
-        xbd_split = raw_dir / "xbd" / ("hold" if split == "val" else split)
-        if xbd_split.exists():
-            cocos.append(convert_xbd_split(xbd_split))
+        # Certains miroirs (ex. Kaggle) gardent la convention historique tier1/tier3 pour les
+        # données d'entraînement labellisées au lieu de les avoir déjà fusionnées dans
+        # "train" (qui peut alors ne contenir que des images sans labels, inutilisable) : on
+        # les combine toutes si elles ont bien un dossier labels/.
+        xbd_candidate_names = {
+            "train": ("train", "tier1", "tier3"),
+            "val": ("hold",),
+            "test": ("test",),
+        }[split]
+        for xbd_name in xbd_candidate_names:
+            xbd_split = raw_dir / "xbd" / xbd_name
+            if (xbd_split / "images").exists() and (xbd_split / "labels").exists():
+                cocos.append(convert_xbd_split(xbd_split))
 
         # SARD (miroir Roboflow) nomme son split de validation "valid", pas "val", et certains
         # miroirs (ex. Kaggle) extraient les données dans un sous-dossier intermédiaire

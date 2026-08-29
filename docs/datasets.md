@@ -102,8 +102,12 @@ végétation, véhicules). Conséquence directe sur la feuille de route :
   ```
   Ce miroir extrait dans un sous-dossier `xbd/` intermédiaire
   (`data/raw/xbd_kaggle_mirror/xbd/{train,test,hold,tier1,tier3}/...`) qu'il faut déplacer
-  vers `data/raw/xbd/` pour que `prepare_dataset.py` le trouve. Contient aussi un split
-  `tier1` non utilisé par notre pipeline (seuls train/test/hold sont consommés).
+  vers `data/raw/xbd/` pour que `prepare_dataset.py` le trouve. **Piège constaté** : le
+  dossier `train` de ce miroir ne contient que des images, **sans labels** (probablement un
+  reliquat de l'ancienne organisation officielle du dataset). Les vraies données labellisées
+  d'entraînement sont dans `tier1/` (+ `tier3/` en complément, tous deux avec `images/` et
+  `labels/`) — `prepare_dataset.py` combine automatiquement `train` + `tier1` + `tier3` s'ils
+  ont chacun un dossier `labels/`, donc un `train/` sans labels est simplement ignoré.
 - **Structure attendue après extraction** (`data/raw/xbd/<split>/`), confirmée identique
   entre la source officielle et le miroir Kaggle :
   ```
