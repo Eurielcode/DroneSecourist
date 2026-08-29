@@ -23,18 +23,25 @@ seulement en fin d'étape.
 
 ## État actuel
 
-**Phase : Étape 1 — Collecte des données publiques (RescueNet, xBD, SARD) — quasiment
-terminée, validée sur données réelles.**
+**Étape 1 — Collecte des données publiques (RescueNet, xBD, SARD) — TERMINÉE et validée sur
+données réelles.**
 
 - Arborescence complète du projet en place (un module par grande fonctionnalité/étape de la
   feuille de route), chaque module documenté par son propre `README.md`.
 - **Étape 1 (`data/`)** : les trois jeux de données ont été réellement téléchargés (RescueNet
   via Figshare — Dropbox ne fonctionne pas en pratique ; SARD et xBD via des miroirs Kaggle,
   xview2.org étant instable) et convertis avec succès vers un format unifié COCO via
-  `prepare_dataset.py`. Ce passage sur données réelles a révélé et corrigé un bug bloquant :
-  les masques RescueNet ne sont pas encodés en RVB comme documenté par le dépôt officiel, mais
-  en indices de classe mono-canal — la conversion tournait sans erreur mais produisait zéro
-  annotation avant correction. Détails complets dans
+  `prepare_dataset.py`, combinés dans les mêmes fichiers de sortie :
+  - `data/processed/train.json` : 16 804 images, 330 240 annotations
+  - `data/processed/val.json` : 2 526 images, 57 009 annotations
+  - `data/processed/test.json` : 1 953 images, 57 267 annotations
+
+  Ce passage sur données réelles a révélé et corrigé deux bugs bloquants qu'aucun test
+  synthétique n'aurait pu détecter : les masques RescueNet ne sont pas encodés en RVB comme
+  documenté par le dépôt officiel, mais en indices de classe mono-canal (la conversion
+  tournait sans erreur mais produisait zéro annotation) ; et le miroir Kaggle de xBD range ses
+  données d'entraînement labellisées dans `tier1`/`tier3` plutôt que dans `train` (qui ne
+  contient que des images sans labels). Détails complets dans
   [`docs/decisions/2026-08-27-format-annotations-unifie.md`](docs/decisions/2026-08-27-format-annotations-unifie.md).
   Tests unitaires à jour (`tests/test_prepare_dataset.py`, 3 tests passent).
 - **Point découvert et résolu pendant la recherche** : ni RescueNet ni xBD ne contiennent
@@ -96,9 +103,10 @@ Chaque dossier de module a son propre `README.md` avec son rôle et son statut d
 
 Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
-1. **Collecte des données publiques** (RescueNet, xBD, SARD) — scripts prêts et testés, reste
-   à lancer le téléchargement réel des trois jeux de données sur une machine adaptée.
-2. Entraînement du modèle de détection IA (multi-classes).
+1. ~~Collecte des données publiques (RescueNet, xBD, SARD)~~ — **terminée**, données réelles
+   téléchargées et converties (`data/processed/{train,val,test}.json`).
+2. **Entraînement du modèle de détection IA (multi-classes)** — prochaine étape à démarrer,
+   à partir des fichiers COCO générés à l'étape 1.
 3. Mise en place de la photogrammétrie (OpenDroneMap/WebODM) sur données d'exemple.
 4. Module de cartographie et priorisation.
 5. Interface de coordination (tableau de bord, alertes, journal).
@@ -112,6 +120,11 @@ Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
 ## Journal des changements
 
+- **2026-08-28** — **Étape 1 terminée** : les trois jeux de données combinés donnent
+  16 804 images/330 240 annotations (train), 2 526/57 009 (val), 1 953/57 267 (test) dans
+  `data/processed/*.json`. Deuxième bug corrigé (miroir Kaggle de xBD : données labellisées
+  dans `tier1`/`tier3`, pas dans `train`). Prochaine étape : entraînement du modèle IA
+  (étape 2).
 - **2026-08-28** — Étape 1 validée sur données réelles : téléchargement effectif de
   RescueNet (Figshare), SARD et xBD (miroirs Kaggle), et conversion réussie vers le format
   unifié COCO. Correction d'un bug bloquant découvert en conditions réelles (masques

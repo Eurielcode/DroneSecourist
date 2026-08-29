@@ -5,7 +5,7 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 | # | Étape | Statut | Module(s) principal(aux) |
 |---|---|---|---|
 | 0 | Mise en place initiale du dépôt | fait | (structure complète) |
-| 1 | Collecte des données publiques (RescueNet, xBD, SARD) | quasiment fait | `data/` |
+| 1 | Collecte des données publiques (RescueNet, xBD, SARD) | fait | `data/` |
 | 2 | Entraînement du modèle de détection IA (multi-classes) | à faire | `ai_detection/` |
 | 3 | Photogrammétrie (OpenDroneMap/WebODM) sur données d'exemple | à faire | `mapping/photogrammetry/` |
 | 4 | Module de cartographie et priorisation | à faire | `mapping/`, `prioritization/` |
@@ -28,13 +28,20 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 - [x] **Téléchargement réel des trois jeux de données effectué** : RescueNet via Figshare
   (Dropbox ne fonctionne pas en pratique), SARD et xBD via des miroirs Kaggle (xview2.org
   instable). Voir `docs/datasets.md` pour les sources exactes et contournements utilisés.
-- [x] **Conversion vers le format unifié COCO validée sur données réelles**
-  (`prepare_dataset.py`) : train 7636 images, val 1593 images, test 1020 images. Un bug
-  bloquant a été découvert et corrigé au passage (masques RescueNet mono-canal à indices, pas
-  RVB comme documenté officiellement) — voir
+- [x] **Conversion vers le format unifié COCO validée sur données réelles, avec les trois
+  jeux de données combinés** (`prepare_dataset.py`) :
+  - train : 16 804 images, 330 240 annotations
+  - val : 2 526 images, 57 009 annotations
+  - test : 1 953 images, 57 267 annotations
+  Deux bugs bloquants ont été découverts et corrigés en cours de route : masques RescueNet
+  mono-canal à indices (pas RVB comme documenté officiellement), et miroir Kaggle de xBD dont
+  le dossier `train` ne contient pas de labels (les vraies données labellisées sont dans
+  `tier1`/`tier3`). Détails complets dans
   `docs/decisions/2026-08-27-format-annotations-unifie.md`.
 - [ ] Statistiques de classes détaillées à consigner dans `docs/datasets.md` (déséquilibre
-  entre classes, etc.) — reste à faire avant de clore complètement l'étape.
+  entre classes, etc.) — optionnel, à faire si utile avant l'étape 2.
+
+**Étape 1 terminée.**
 
 ### Étape 2 — Entraînement du modèle de détection IA
 - Entraînement multi-classes (YOLOv8/v11) sur RescueNet/xBD.
