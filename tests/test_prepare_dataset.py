@@ -45,10 +45,11 @@ def _make_rescuenet_split(tmp_path: Path) -> Path:
 
 def test_convert_rescuenet_split(tmp_path: Path) -> None:
     split_dir = _make_rescuenet_split(tmp_path)
-    coco = convert_rescuenet_split(split_dir)
+    coco = convert_rescuenet_split(split_dir, raw_dir=tmp_path)
 
     assert len(coco["images"]) == 1
     assert coco["images"][0]["file_name"] == "0001.jpg"
+    assert coco["images"][0]["source_path"] == "train/train-org-img/0001.jpg"
     assert len(coco["categories"]) == len(CATEGORY_IDS)
 
     category_ids_found = {ann["category_id"] for ann in coco["annotations"]}
@@ -85,16 +86,22 @@ def _make_xbd_split(tmp_path: Path) -> Path:
     with open(label_path, "w", encoding="utf-8") as f:
         json.dump(label, f)
 
+    # L'image doit exister réellement : source_path (utilisé pour l'entraînement) pointe
+    # vers un fichier qui doit être présent sur disque, même quand la taille est déjà
+    # connue via metadata.
+    cv2.imwrite(str(images_dir / "disaster_00000001_post_disaster.png"), np.zeros((100, 100, 3), dtype=np.uint8))
+
     return split_dir
 
 
 def test_convert_xbd_split(tmp_path: Path) -> None:
     split_dir = _make_xbd_split(tmp_path)
-    coco = convert_xbd_split(split_dir)
+    coco = convert_xbd_split(split_dir, raw_dir=tmp_path)
 
     assert len(coco["images"]) == 1
     assert coco["images"][0]["width"] == 100
     assert coco["images"][0]["height"] == 100
+    assert coco["images"][0]["source_path"] == "test/images/disaster_00000001_post_disaster.png"
 
     # Un seul bâtiment doit être conservé : le "un-classified" est ignoré (pas de catégorie).
     assert len(coco["annotations"]) == 1
@@ -121,10 +128,11 @@ def _make_sard_split(tmp_path: Path) -> Path:
 
 def test_convert_sard_split(tmp_path: Path) -> None:
     split_dir = _make_sard_split(tmp_path)
-    coco = convert_sard_split(split_dir)
+    coco = convert_sard_split(split_dir, raw_dir=tmp_path)
 
     assert len(coco["images"]) == 1
     assert coco["images"][0]["file_name"] == "frame_001.jpg"
+    assert coco["images"][0]["source_path"] == "train/images/frame_001.jpg"
 
     assert len(coco["annotations"]) == 1
     ann = coco["annotations"][0]

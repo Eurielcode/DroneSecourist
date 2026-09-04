@@ -83,9 +83,21 @@ def _new_coco_dict() -> dict:
     }
 
 
-def _add_image(coco: dict, file_name: str, width: int, height: int) -> int:
+def _add_image(coco: dict, file_name: str, width: int, height: int, source_path: Path, raw_dir: Path) -> int:
     image_id = len(coco["images"]) + 1
-    coco["images"].append({"id": image_id, "file_name": file_name, "width": width, "height": height})
+    coco["images"].append(
+        {
+            "id": image_id,
+            "file_name": file_name,
+            "width": width,
+            "height": height,
+            # Chemin réel de l'image sur disque, relatif à raw_dir : les trois jeux de
+            # données étant fusionnés, file_name seul (souvent juste le nom de base) ne
+            # suffit pas à retrouver les pixels d'origine (voir ai_detection/training/
+            # prepare_yolo_dataset.py qui en a besoin pour l'entraînement).
+            "source_path": source_path.resolve().relative_to(raw_dir.resolve()).as_posix(),
+        }
+    )
     return image_id
 
 
@@ -123,7 +135,7 @@ def _find_matching_label(image_path: Path, label_dir: Path) -> Optional[Path]:
     return matches[0] if matches else None
 
 
-def convert_rescuenet_split(split_dir: Path) -> dict:
+def convert_rescuenet_split(split_dir: Path, raw_dir: Path) -> dict:
     """Convertit un split RescueNet (train/val/test) en dict COCO.
 
     Structure attendue : split_dir/<nom>-org-img/*.jpg et split_dir/<nom>-label-img/*.png
@@ -153,7 +165,7 @@ def convert_rescuenet_split(split_dir: Path) -> dict:
         if mask.ndim == 3:
             mask = mask[:, :, 0]
         height, width = mask.shape[:2]
-        image_id = _add_image(coco, image_path.name, width, height)
+        image_id = _add_image(coco, image_path.name, width, height, image_path, raw_dir)
 
         for class_index, category_name in RESCUENET_INDEX_TO_CATEGORY.items():
             binary = (mask == class_index).astype(np.uint8)
@@ -181,7 +193,7 @@ def _parse_wkt_polygon(wkt: str) -> Optional[np.ndarray]:
     return np.array(points, dtype=np.float64) if len(points) >= 3 else None
 
 
-def convert_xbd_split(split_dir: Path) -> dict:
+def convert_xbd_split(split_dir: Path, raw_dir: Path) -> dict:
     """Convertit un split xBD en dict COCO à partir des labels post-catastrophe.
 
     Structure attendue : split_dir/images/*_post_disaster.png et
@@ -204,14 +216,16 @@ def convert_xbd_split(split_dir: Path) -> dict:
         metadata = label.get("metadata", {})
         width, height = metadata.get("width"), metadata.get("height")
         image_name = label_path.stem + ".png"
+        image_path = images_dir / image_name
+        if not image_path.exists():
+            continue
         if width is None or height is None:
-            image_path = images_dir / image_name
-            image = cv2.imread(str(image_path)) if image_path.exists() else None
+            image = cv2.imread(str(image_path))
             if image is None:
                 continue
             height, width = image.shape[:2]
 
-        image_id = _add_image(coco, image_name, width, height)
+        image_id = _add_image(coco, image_name, width, height, image_path, raw_dir)
 
         for feature in label.get("features", {}).get("xy", []):
             subtype = feature.get("properties", {}).get("subtype")
@@ -231,7 +245,7 @@ def convert_xbd_split(split_dir: Path) -> dict:
 _IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
 
 
-def convert_sard_split(split_dir: Path) -> dict:
+def convert_sard_split(split_dir: Path, raw_dir: Path) -> dict:
     """Convertit un split SARD (format YOLO) en dict COCO.
 
     Hypothèse de structure (format YOLO le plus courant pour ce jeu de données, notamment via
@@ -264,7 +278,7 @@ def convert_sard_split(split_dir: Path) -> dict:
         if image is None:
             continue
         height, width = image.shape[:2]
-        image_id = _add_image(coco, image_path.name, width, height)
+        image_id = _add_image(coco, image_path.name, width, height, image_path, raw_dir)
 
         for line in label_path.read_text().splitlines():
             parts = line.split()
@@ -312,7 +326,7 @@ def prepare_dataset(raw_dir: Path = Path("data/raw"), output_dir: Path = Path("d
 
         rescuenet_split = raw_dir / "rescuenet" / split
         if rescuenet_split.exists():
-            cocos.append(convert_rescuenet_split(rescuenet_split))
+            cocos.append(convert_rescuenet_split(rescuenet_split, raw_dir))
 
         # xBD n'a pas de split "val" officiel : on utilise son split "hold" comme validation.
         # Certains miroirs (ex. Kaggle) gardent la convention historique tier1/tier3 pour les
@@ -327,7 +341,7 @@ def prepare_dataset(raw_dir: Path = Path("data/raw"), output_dir: Path = Path("d
         for xbd_name in xbd_candidate_names:
             xbd_split = raw_dir / "xbd" / xbd_name
             if (xbd_split / "images").exists() and (xbd_split / "labels").exists():
-                cocos.append(convert_xbd_split(xbd_split))
+                cocos.append(convert_xbd_split(xbd_split, raw_dir))
 
         # SARD (miroir Roboflow) nomme son split de validation "valid", pas "val", et certains
         # miroirs (ex. Kaggle) extraient les données dans un sous-dossier intermédiaire
@@ -342,7 +356,7 @@ def prepare_dataset(raw_dir: Path = Path("data/raw"), output_dir: Path = Path("d
                 None,
             )
             if sard_split is not None:
-                cocos.append(convert_sard_split(sard_split))
+                cocos.append(convert_sard_split(sard_split, raw_dir))
                 break
 
         if not cocos:
