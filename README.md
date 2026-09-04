@@ -23,11 +23,17 @@ seulement en fin d'étape.
 
 ## État actuel
 
-**Étape 1 — Collecte des données publiques (RescueNet, xBD, SARD) — TERMINÉE et validée sur
-données réelles.**
+**Étape 2 — Entraînement du modèle de détection IA, en cours.** (Étape 1 — collecte des
+données — terminée.)
 
 - Arborescence complète du projet en place (un module par grande fonctionnalité/étape de la
   feuille de route), chaque module documenté par son propre `README.md`.
+- **Étape 2 (`ai_detection/`)** : pipeline d'entraînement écrit (export COCO→YOLO,
+  entraînement et évaluation via Ultralytics) et **validé par un vrai mini-entraînement**
+  (dataset synthétique, 1 epoch) — le modèle se construit avec les 11 classes, s'entraîne,
+  sauvegarde des checkpoints et s'évalue correctement. **L'entraînement réel sur les 16 804
+  images de l'étape 1 n'a pas encore été lancé** (recommandé sur une machine avec GPU). Détail
+  dans [`ai_detection/README.md`](ai_detection/README.md).
 - **Étape 1 (`data/`)** : les trois jeux de données ont été réellement téléchargés (RescueNet
   via Figshare — Dropbox ne fonctionne pas en pratique ; SARD et xBD via des miroirs Kaggle,
   xview2.org étant instable) et convertis avec succès vers un format unifié COCO via
@@ -105,8 +111,9 @@ Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
 1. ~~Collecte des données publiques (RescueNet, xBD, SARD)~~ — **terminée**, données réelles
    téléchargées et converties (`data/processed/{train,val,test}.json`).
-2. **Entraînement du modèle de détection IA (multi-classes)** — prochaine étape à démarrer,
-   à partir des fichiers COCO générés à l'étape 1.
+2. **Entraînement du modèle de détection IA (multi-classes)** — pipeline prêt et validé,
+   reste à lancer l'entraînement réel sur une machine adaptée (GPU recommandé), puis écrire
+   les modules d'inférence par fonctionnalité (`ai_detection/inference/`).
 3. Mise en place de la photogrammétrie (OpenDroneMap/WebODM) sur données d'exemple.
 4. Module de cartographie et priorisation.
 5. Interface de coordination (tableau de bord, alertes, journal).
@@ -120,6 +127,12 @@ Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
 ## Journal des changements
 
+- **2026-09-04** — Étape 2 (entraînement IA) démarrée : ajout de `source_path` au format
+  COCO unifié (nécessaire pour retrouver les images d'origine) ; écriture de
+  `ai_detection/training/{prepare_yolo_dataset,train,evaluate}.py` (export vers un dataset
+  YOLO via liens durs, entraînement et évaluation Ultralytics). Pipeline validé par un vrai
+  mini-entraînement de bout en bout (dataset synthétique, 1 epoch). Entraînement réel sur les
+  données de l'étape 1 pas encore lancé.
 - **2026-08-28** — **Étape 1 terminée** : les trois jeux de données combinés donnent
   16 804 images/330 240 annotations (train), 2 526/57 009 (val), 1 953/57 267 (test) dans
   `data/processed/*.json`. Deuxième bug corrigé (miroir Kaggle de xBD : données labellisées

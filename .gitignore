@@ -20,6 +20,12 @@ ai_detection/models/
 *.onnx
 *.h5
 
+# Dataset YOLO généré (liens durs/copies des images brutes + config avec chemin absolu
+# spécifique à la machine) et logs Ultralytics par défaut.
+ai_detection/dataset/
+ai_detection/configs/dataset.yaml
+runs/
+
 # Photogrammétrie (sorties volumineuses)
 mapping/photogrammetry/**/output/
 *.tif

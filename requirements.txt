@@ -9,9 +9,8 @@ kaggle  # téléchargement de SARD (data/scripts/download_sard.py)
 # tests
 pytest
 
-# ai_detection (étape 2, pas encore utilisé)
-# ultralytics
-# torch
+# ai_detection (étape 2 — entraînement du modèle de détection)
+ultralytics  # installe torch automatiquement (CPU par défaut sur cet environnement)
 
 # mapping / photogrammétrie (étape 3-4, pas encore utilisé)
 # opendronemap (via CLI/Docker, pas un package pip)

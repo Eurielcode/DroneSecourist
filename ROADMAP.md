@@ -6,7 +6,7 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 |---|---|---|---|
 | 0 | Mise en place initiale du dépôt | fait | (structure complète) |
 | 1 | Collecte des données publiques (RescueNet, xBD, SARD) | fait | `data/` |
-| 2 | Entraînement du modèle de détection IA (multi-classes) | à faire | `ai_detection/` |
+| 2 | Entraînement du modèle de détection IA (multi-classes) | en cours | `ai_detection/` |
 | 3 | Photogrammétrie (OpenDroneMap/WebODM) sur données d'exemple | à faire | `mapping/photogrammetry/` |
 | 4 | Module de cartographie et priorisation | à faire | `mapping/`, `prioritization/` |
 | 5 | Interface de coordination (tableau de bord, alertes, journal) | à faire | `dashboard/`, `field_guidance/` |
@@ -44,13 +44,23 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
 **Étape 1 terminée.**
 
 ### Étape 2 — Entraînement du modèle de détection IA
-- Entraînement multi-classes (YOLOv8/v11) sur RescueNet/xBD.
-- Modules d'inférence séparés par fonctionnalité : détection de victimes (#1, dégradé
-  RGB+IA), mode nuit (#19, dégradé), micro-mouvements (#2, expérimental), estimation du
-  nombre de personnes (#16), dégâts/zones dangereuses (#6, #15), signaux de détresse
-  visuels (#22), corps sans signe de vie (#8, formulé comme indice de priorisation et non
-  un diagnostic).
-- Évaluation (mAP, biais dataset) et export ONNX.
+- [x] `ai_detection/training/prepare_yolo_dataset.py` : export du format unifié COCO
+  (étape 1) vers un dataset YOLO, via liens durs vers `data/raw/` (pas de copie, économise
+  l'espace disque). Génère `ai_detection/configs/dataset.yaml`.
+- [x] `ai_detection/training/train.py` et `evaluate.py` : entraînement et évaluation via
+  Ultralytics YOLO.
+- [x] Pipeline complet **validé par un vrai mini-entraînement** (pas seulement des tests
+  unitaires) : dataset synthétique, 1 epoch, modèle YOLOv8n construit avec les 11 classes,
+  entraînement exécuté, checkpoints sauvegardés, évaluation fonctionnelle avec les noms de
+  catégories corrects.
+- [ ] Entraînement réel sur les données de l'étape 1 (16 804 images en train) — pas encore
+  lancé, nécessite une machine avec de préférence un GPU (CPU serait très long sur ce volume).
+- [ ] Modules d'inférence séparés par fonctionnalité (`ai_detection/inference/`) — détection
+  de victimes (#1, dégradé RGB+IA), mode nuit (#19, dégradé), micro-mouvements (#2,
+  expérimental), estimation du nombre de personnes (#16), dégâts/zones dangereuses (#6, #15),
+  signaux de détresse visuels (#22), corps sans signe de vie (#8, formulé comme indice de
+  priorisation et non un diagnostic) — à écrire une fois un premier modèle entraîné.
+- [ ] Évaluation (mAP, biais dataset) et export ONNX sur le modèle réellement entraîné.
 
 ### Étape 3 — Photogrammétrie
 - Orchestration OpenDroneMap sur images d'exemple.
