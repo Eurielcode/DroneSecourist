@@ -1,4 +1,4 @@
-"""Tests des convertisseurs RescueNet/xBD/SARD -> format unifié, avec des données synthétiques.
+"""Tests des convertisseurs RescueNet/xBD/SARD/C2A -> format unifié, avec des données synthétiques.
 
 Le jeu de données réel n'est pas disponible dans l'environnement de développement (taille,
 inscription requise pour xBD/SARD) : ces tests construisent de fausses images/labels
@@ -17,6 +17,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "data" / "scripts"))
 from prepare_dataset import (  # noqa: E402
     CATEGORY_IDS,
+    convert_c2a_split,
     convert_rescuenet_split,
     convert_sard_split,
     convert_xbd_split,
@@ -139,3 +140,31 @@ def test_convert_sard_split(tmp_path: Path) -> None:
     assert ann["category_id"] == CATEGORY_IDS["person"]
     # width=100 -> x_center=50, box_w=20 -> x_min=40 ; height=200 -> y_center=50, box_h=20 -> y_min=40
     assert ann["bbox"] == [40.0, 40.0, 20.0, 20.0]
+
+
+def _make_c2a_split(tmp_path: Path) -> Path:
+    split_dir = tmp_path / "train"
+    images_dir = split_dir / "images"
+    labels_dir = split_dir / "labels"
+    images_dir.mkdir(parents=True)
+    labels_dir.mkdir(parents=True)
+
+    height, width = 100, 100
+    image = np.zeros((height, width, 3), dtype=np.uint8)
+    cv2.imwrite(str(images_dir / "c2a_0001.jpg"), image)
+
+    # Une personne partiellement occluse (petite boîte), même format YOLO que SARD.
+    (labels_dir / "c2a_0001.txt").write_text("0 0.3 0.3 0.1 0.15\n")
+
+    return split_dir
+
+
+def test_convert_c2a_split(tmp_path: Path) -> None:
+    split_dir = _make_c2a_split(tmp_path)
+    coco = convert_c2a_split(split_dir, raw_dir=tmp_path)
+
+    assert len(coco["images"]) == 1
+    assert coco["images"][0]["source_path"] == "train/images/c2a_0001.jpg"
+
+    assert len(coco["annotations"]) == 1
+    assert coco["annotations"][0]["category_id"] == CATEGORY_IDS["person"]

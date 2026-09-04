@@ -31,9 +31,12 @@ données — terminée.)
 - **Étape 2 (`ai_detection/`)** : pipeline d'entraînement écrit (export COCO→YOLO,
   entraînement et évaluation via Ultralytics) et **validé par un vrai mini-entraînement**
   (dataset synthétique, 1 epoch) — le modèle se construit avec les 11 classes, s'entraîne,
-  sauvegarde des checkpoints et s'évalue correctement. **L'entraînement réel sur les 16 804
-  images de l'étape 1 n'a pas encore été lancé** (recommandé sur une machine avec GPU). Détail
-  dans [`ai_detection/README.md`](ai_detection/README.md).
+  sauvegarde des checkpoints et s'évalue correctement. Un 4e jeu de données, **C2A**
+  (personnes occluses en contexte de catastrophe), a été ajouté pour combler une limite de
+  SARD, avec en plus une augmentation d'occlusion/basse luminosité renforcée et un script de
+  *hard negative mining* pour réduire les faux positifs après un premier entraînement.
+  **L'entraînement réel sur les données de l'étape 1 n'a pas encore été lancé** (recommandé
+  sur une machine avec GPU). Détail dans [`ai_detection/README.md`](ai_detection/README.md).
 - **Étape 1 (`data/`)** : les trois jeux de données ont été réellement téléchargés (RescueNet
   via Figshare — Dropbox ne fonctionne pas en pratique ; SARD et xBD via des miroirs Kaggle,
   xview2.org étant instable) et convertis avec succès vers un format unifié COCO via
@@ -127,6 +130,12 @@ Alignées sur la feuille de route complète (voir [`ROADMAP.md`](ROADMAP.md)) :
 
 ## Journal des changements
 
+- **2026-09-04** — Étape 2, suite : ajout d'un 4e jeu de données, **C2A** (personnes
+  occluses/en contexte de catastrophe, via `download_c2a.py`, même format YOLO que SARD),
+  pour combler une limite identifiée (SARD ne montre que du terrain dégagé). Ajout de
+  l'augmentation d'occlusion/basse luminosité renforcée dans `train.py` et d'un script
+  `mine_hard_negatives.py` pour réduire les faux positifs après un premier entraînement.
+  Tout validé (tests + un vrai mini-entraînement réel avec les nouveaux paramètres).
 - **2026-09-04** — Étape 2 (entraînement IA) démarrée : ajout de `source_path` au format
   COCO unifié (nécessaire pour retrouver les images d'origine) ; écriture de
   `ai_detection/training/{prepare_yolo_dataset,train,evaluate}.py` (export vers un dataset

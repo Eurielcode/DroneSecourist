@@ -53,7 +53,13 @@ Statut : `à faire` / `en cours` / `fait`. Mise à jour à chaque avancée (voir
   unitaires) : dataset synthétique, 1 epoch, modèle YOLOv8n construit avec les 11 classes,
   entraînement exécuté, checkpoints sauvegardés, évaluation fonctionnelle avec les noms de
   catégories corrects.
-- [ ] Entraînement réel sur les données de l'étape 1 (16 804 images en train) — pas encore
+- [x] **Limites des données identifiées et comblées quand c'était faisable sans nouvelles
+  données réelles** : ajout du dataset **C2A** (personnes occluses en contexte de
+  catastrophe, `download_c2a.py`), augmentation d'occlusion/basse luminosité renforcée dans
+  `train.py`, et script `mine_hard_negatives.py` pour réduire les faux positifs après un
+  premier entraînement. Ce qui reste (vidéo, triage, retours secouristes) nécessite le drone
+  réel ou un partenariat externe — voir `ai_detection/README.md`.
+- [ ] Entraînement réel sur les données de l'étape 1 (16 804+ images en train) — pas encore
   lancé, nécessite une machine avec de préférence un GPU (CPU serait très long sur ce volume).
 - [ ] Modules d'inférence séparés par fonctionnalité (`ai_detection/inference/`) — détection
   de victimes (#1, dégradé RGB+IA), mode nuit (#19, dégradé), micro-mouvements (#2,

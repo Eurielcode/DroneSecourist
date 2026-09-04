@@ -7,8 +7,8 @@ synthétiques). Entraînement réel sur les données de l'étape 1 pas encore la
 ## Rôle
 
 Entraîner et exécuter un modèle de détection multi-classes sur les images aériennes, à partir
-des données unifiées de l'étape 1 (RescueNet + xBD + SARD, `data/processed/*.json`), pour
-alimenter les modules de cartographie et de priorisation.
+des données unifiées de l'étape 1 (RescueNet + xBD + SARD + C2A, `data/processed/*.json`),
+pour alimenter les modules de cartographie et de priorisation.
 
 ## Structure
 
@@ -20,9 +20,12 @@ alimenter les modules de cartographie et de priorisation.
     mais liées en dur (hard link) vers `data/raw/` pour ne pas doubler l'espace disque déjà
     occupé par les données brutes (plusieurs dizaines de Go).
   - `train.py` : entraînement via Ultralytics YOLO (YOLOv8/v11 selon les poids de départ
-    choisis).
+    choisis). Augmentation renforcée par défaut (occlusion + basse luminosité, voir section
+    « Limites du modèle et mitigations » ci-dessous).
   - `evaluate.py` : évaluation d'un modèle entraîné (mAP, précision/rappel par classe) sur un
     split donné.
+  - `mine_hard_negatives.py` : *hard negative mining* — à utiliser après un premier
+    entraînement pour réduire les faux positifs (voir ci-dessous).
 - `dataset/` : sortie de `prepare_yolo_dataset.py` (gitignoré).
 - `models/` : checkpoints entraînés (gitignoré, trop volumineux pour git).
 - `inference/` : un module par fonctionnalité livrée, chacun consommant le(s) modèle(s)
@@ -53,6 +56,21 @@ construit bien un modèle à 11 classes, entraîne, sauvegarde des checkpoints e
 les vrais noms de catégories. L'entraînement réel sur les données de l'étape 1
 (16 804 images en train) n'a pas encore été lancé — nécessite une machine avec de préférence
 un GPU (l'entraînement CPU serait très long sur ce volume).
+
+## Limites du modèle et mitigations
+
+Même avec RescueNet + xBD + SARD + C2A combinés, certains cas restent mal couverts par les
+données disponibles. Ce qu'on fait maintenant sans nouvelles données, et ce qui reste reporté :
+
+| Limite | Mitigation appliquée maintenant | Ce qui resterait à faire |
+|---|---|---|
+| Pas d'images de nuit annotées | Augmentation de luminosité renforcée (`--hsv-v`, voir `train.py`) | Vraies images de nuit (drone réel, étape 7-9) |
+| Personnes occluses (déjà en partie couvert par C2A) | Augmentation d'occlusion renforcée (`--erasing`) + C2A | Plus de données réelles d'occlusion terrain |
+| Faux positifs (rochers, sacs, débris) | `mine_hard_negatives.py`, à lancer après le 1er entraînement | Itérer plusieurs cycles d'entraînement/mining |
+| Pas de séquences vidéo (mouvement/respiration #2, suivi #17) | — | Nécessite de vraies vidéos, reporté au drone réel |
+| Pas de niveaux de gravité/triage | — | Nécessite un partenariat secouristes (étape 12) |
+
+Détail dans `docs/datasets.md` (section « Limites qui restent »).
 
 ## Dépendances
 

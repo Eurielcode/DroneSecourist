@@ -147,10 +147,40 @@ végétation, véhicules). Conséquence directe sur la feuille de route :
   data/raw/sard/search-and-rescue/test/images/*.jpg   .../test/labels/*.txt
   ```
 
+## C2A (Combination to Application)
+
+Ajouté après l'étape 1 : SARD montre des personnes bien visibles sur terrain dégagé, pas des
+victimes partiellement cachées sous des débris — le cas le plus critique en contexte réel de
+catastrophe.
+
+- **Publication** : Nihal et al., « UAV-Enhanced Combination to Application: Comprehensive
+  Analysis and Benchmarking of a Human Detection Dataset for Disaster Scenarios ».
+- **Contenu** : dataset **synthétique** — poses humaines (LSP/MPII-MPHB) incrustées sur des
+  fonds de catastrophe réels du dataset AIDER (incendie/fumée, inondation, bâtiment
+  effondré/décombres, accident de la route). 10 215 images, plus de 360 000 personnes
+  annotées, poses variées (debout, assise, allongée, à genoux, penchée) — y compris des
+  occlusions partielles par les débris. Classe unique : `person`. Une variante enrichie
+  ajoute une 6e colonne de pose (0=Bent, 1=Kneeling, 2=Lying, 3=Sitting, 4=Upright), non
+  exploitée par notre pipeline pour l'instant (colonnes en plus ignorées par le parseur YOLO
+  standard).
+- **Licence** : non précisée par les auteurs.
+- **Téléchargement** :
+  - Miroir Kaggle (retenu) : https://www.kaggle.com/datasets/rgbnihal/c2a-dataset
+  - Source originale (GitHub) : https://github.com/Ragib-Amin-Nihal/C2A
+  - Script : `python data/scripts/download_c2a.py` (même méthode que SARD, jeton API Kaggle)
+- **Structure attendue** (`data/raw/c2a/`), même format YOLO que SARD :
+  ```
+  train/images/*.jpg   train/labels/*.txt
+  val/images/*.jpg     val/labels/*.txt
+  test/images/*.jpg    test/labels/*.txt
+  ```
+  Réutilise le même convertisseur générique que SARD
+  (`_convert_yolo_person_split` dans `prepare_dataset.py`).
+
 ## Format unifié
 
-Les trois jeux de données sont convertis vers un format commun de type COCO par
-`data/scripts/prepare_dataset.py` (catégorie `person` ajoutée pour SARD). Détail de la
+Les quatre jeux de données sont convertis vers un format commun de type COCO par
+`data/scripts/prepare_dataset.py` (catégorie `person` ajoutée pour SARD/C2A). Détail de la
 décision et de la taxonomie de catégories partagée :
 [`docs/decisions/2026-08-27-format-annotations-unifie.md`](decisions/2026-08-27-format-annotations-unifie.md).
 
@@ -161,10 +191,20 @@ pip install -r requirements.txt
 python data/scripts/download_rescuenet.py     # automatique
 python data/scripts/download_xbd.py           # nécessite d'avoir téléchargé les .tar.gz manuellement au préalable (voir ci-dessus)
 python data/scripts/download_sard.py          # nécessite un jeton API Kaggle (voir le script)
+python data/scripts/download_c2a.py           # nécessite un jeton API Kaggle (voir le script)
 python data/scripts/prepare_dataset.py        # génère data/processed/{train,val,test}.json
 ```
 
-Ces quatre scripts sont écrits et testés (voir `tests/test_prepare_dataset.py`), mais le
+## Limites qui restent malgré RescueNet + xBD + SARD + C2A
+
+Même avec ces quatre jeux de données, certains manques ne sont pas comblés par un simple
+téléchargement — voir `ai_detection/README.md` (section limites du modèle) : pas d'images de
+nuit annotées, pas de séquences vidéo (utile pour mouvement/respiration ou suivi individuel),
+pas de niveaux de gravité/triage. Ces manques nécessitent soit de l'augmentation synthétique
+(faisable maintenant, voir `ai_detection/training/train.py`), soit de vraies données de
+terrain ou un partenariat externe (secouristes) — reportés à une phase ultérieure du projet.
+
+Ces cinq scripts sont écrits et testés (voir `tests/test_prepare_dataset.py`), mais le
 téléchargement réel des jeux de données complets n'a pas encore été exécuté (volumes trop
 importants pour l'environnement de développement actuel) — à faire sur une machine avec
 suffisamment d'espace disque et un accès réseau complet.

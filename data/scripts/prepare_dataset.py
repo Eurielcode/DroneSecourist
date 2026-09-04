@@ -1,4 +1,4 @@
-"""Conversion de RescueNet, xBD et SARD vers un format d'annotations unifié (style COCO).
+"""Conversion de RescueNet, xBD, SARD et C2A vers un format d'annotations unifié (style COCO).
 
 Décision de format documentée dans docs/decisions/2026-08-27-format-annotations-unifie.md.
 
@@ -245,15 +245,13 @@ def convert_xbd_split(split_dir: Path, raw_dir: Path) -> dict:
 _IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png")
 
 
-def convert_sard_split(split_dir: Path, raw_dir: Path) -> dict:
-    """Convertit un split SARD (format YOLO) en dict COCO.
+def _convert_yolo_person_split(split_dir: Path, raw_dir: Path) -> dict:
+    """Convertit un split au format YOLO mono-classe "person" en dict COCO.
 
-    Hypothèse de structure (format YOLO le plus courant pour ce jeu de données, notamment via
-    son miroir Roboflow) : split_dir/images/*.{jpg,png} et split_dir/labels/*.txt, une ligne
+    Structure attendue : split_dir/images/*.{jpg,png} et split_dir/labels/*.txt, une ligne
     par personne au format YOLO normalisé : "<classe> <x_centre> <y_centre> <largeur>
-    <hauteur>". SARD est mono-classe (person). À valider/ajuster une fois le jeu de données
-    réel téléchargé et inspecté (voir docs/datasets.md) — le mirroir Kaggle brut pourrait
-    utiliser un format d'annotation différent.
+    <hauteur>". Partagé par SARD et C2A, qui utilisent tous les deux ce format (voir
+    convert_sard_split et convert_c2a_split).
     """
     coco = _new_coco_dict()
     images_dir = split_dir / "images"
@@ -301,6 +299,28 @@ def convert_sard_split(split_dir: Path, raw_dir: Path) -> dict:
     return coco
 
 
+def convert_sard_split(split_dir: Path, raw_dir: Path) -> dict:
+    """Convertit un split SARD (format YOLO, mono-classe person) en dict COCO.
+
+    À valider/ajuster une fois le jeu de données réel téléchargé et inspecté (voir
+    docs/datasets.md) — le miroir Kaggle brut pourrait utiliser un format d'annotation
+    différent.
+    """
+    return _convert_yolo_person_split(split_dir, raw_dir)
+
+
+def convert_c2a_split(split_dir: Path, raw_dir: Path) -> dict:
+    """Convertit un split C2A (format YOLO, mono-classe person) en dict COCO.
+
+    C2A (Combination to Application) : personnes synthétiques incrustées sur des fonds de
+    catastrophe réels (incendie, inondation, bâtiment effondré, accident), avec occlusions
+    partielles et poses variées (debout, assise, allongée, à genoux, penchée) — comble une
+    limite de SARD (personnes toujours bien visibles sur terrain dégagé). Voir
+    docs/datasets.md.
+    """
+    return _convert_yolo_person_split(split_dir, raw_dir)
+
+
 def _merge_coco(dicts: Iterable[dict]) -> dict:
     merged = _new_coco_dict()
     image_id_offset = 0
@@ -316,6 +336,22 @@ def _merge_coco(dicts: Iterable[dict]) -> dict:
             )
         image_id_offset = max((img["id"] for img in merged["images"]), default=image_id_offset)
     return merged
+
+
+def _find_yolo_split(raw_dir: Path, dataset_name: str, split_name: str) -> Optional[Path]:
+    """Cherche récursivement le dossier d'un split YOLO sous raw_dir/<dataset_name>/.
+
+    Certains miroirs (ex. Kaggle) extraient les données dans un sous-dossier intermédiaire
+    (ex. sard/search-and-rescue/train/) au lieu de raw_dir/<dataset_name>/train/ directement.
+    """
+    return next(
+        (
+            candidate
+            for candidate in raw_dir.glob(f"{dataset_name}/**/{split_name}")
+            if (candidate / "images").exists() and (candidate / "labels").exists()
+        ),
+        None,
+    )
 
 
 def prepare_dataset(raw_dir: Path = Path("data/raw"), output_dir: Path = Path("data/processed")) -> None:
@@ -343,21 +379,18 @@ def prepare_dataset(raw_dir: Path = Path("data/raw"), output_dir: Path = Path("d
             if (xbd_split / "images").exists() and (xbd_split / "labels").exists():
                 cocos.append(convert_xbd_split(xbd_split, raw_dir))
 
-        # SARD (miroir Roboflow) nomme son split de validation "valid", pas "val", et certains
-        # miroirs (ex. Kaggle) extraient les données dans un sous-dossier intermédiaire
-        # (ex. sard/search-and-rescue/train/) : on cherche récursivement le bon dossier.
+        # SARD (miroir Roboflow) nomme son split de validation "valid", pas "val".
         for sard_split_name in ({"val": "valid"}.get(split, split), split):
-            sard_split = next(
-                (
-                    candidate
-                    for candidate in raw_dir.glob(f"sard/**/{sard_split_name}")
-                    if (candidate / "images").exists() and (candidate / "labels").exists()
-                ),
-                None,
-            )
+            sard_split = _find_yolo_split(raw_dir, "sard", sard_split_name)
             if sard_split is not None:
                 cocos.append(convert_sard_split(sard_split, raw_dir))
                 break
+
+        # C2A : même format YOLO que SARD, ajouté pour couvrir les personnes partiellement
+        # occluses/en contexte de catastrophe (SARD ne montre que du terrain dégagé).
+        c2a_split = _find_yolo_split(raw_dir, "c2a", split)
+        if c2a_split is not None:
+            cocos.append(convert_c2a_split(c2a_split, raw_dir))
 
         if not cocos:
             continue
